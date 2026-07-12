@@ -1,0 +1,39 @@
+name: Homegate Scraper
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'   # har 2 ghante baad chalega (UTC time)
+  workflow_dispatch:         # manual "Run workflow" button k liye
+
+permissions:
+  contents: write            # taake workflow master file ko commit/push kar sake
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run homegate scraper
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: python homegate_scraper.py
+
+      - name: Commit updated master file
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add homegate_listings.txt
+          git diff --staged --quiet || git commit -m "Update homegate listings [skip ci]"
+          git push
